@@ -42,8 +42,8 @@ jobs:
       env:
         PYTHONUNBUFFERED: "1"
         TZ: "Asia/Shanghai"
-      working-directory: ./rs
       run: |
+        cd rs
         echo "开始监控任务"
         echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
         python monitor.py
