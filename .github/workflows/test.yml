@@ -1,0 +1,18 @@
+name: GitHub Actions Test
+
+on:
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  test-job:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Print greeting
+        run: echo "Hello from GitHub Actions! Test successful at $(date)"
+      
+      - name: Check Python
+        run: python3 --version
