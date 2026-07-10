@@ -1,0 +1,71 @@
+name: HRSS Notification Monitor
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 北京时间 10:00执行
+  workflow_dispatch:  # 允许手动触发
+  push:
+    branches: [ main ]
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4 schedule playwright
+        playwright install chromium
+    
+    - name: Create data directory
+      run: |
+        mkdir -p rs/data
+    
+    - name: Run monitor
+      env:
+        PYTHONUNBUFFERED: "1"
+        TZ: "Asia/Shanghai"
+      working-directory: ./rs
+      run: |
+        echo "开始监控任务"
+        echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+        python monitor.py
+      timeout-minutes: 25
+    
+    - name: Upload database as artifact
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: database
+        path: rs/data/notifications.db
+        retention-days: 7
+    
+    - name: Check job status
+      if: always()
+      run: |
+        echo "任务状态: ${{ job.status }}"
+    
+    - name: Create workflow summary
+      if: always()
+      run: |
+        echo "## 监控任务执行结果 📊" >> $GITHUB_STEP_SUMMARY
+        echo "- **执行时间**: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+        echo "- **执行状态**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Workflow**: [查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
