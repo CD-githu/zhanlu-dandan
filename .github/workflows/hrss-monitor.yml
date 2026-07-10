@@ -31,8 +31,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 schedule
-        echo "跳过Playwright安装（人才服务平台在CI中跳过）"
+        pip install requests beautifulsoup4 schedule playwright
+        playwright install chromium --with-deps
+      timeout-minutes: 10
     
     - name: Create data directory
       run: |
@@ -47,7 +48,7 @@ jobs:
         echo "开始监控任务"
         echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
         python monitor.py
-      timeout-minutes: 25
+      timeout-minutes: 30
     
     - name: Upload database as artifact
       if: always()

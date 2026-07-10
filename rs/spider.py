@@ -105,21 +105,24 @@ class HRSSSpider:
         return results
 
     def _fetch_zwfw_via_playwright(self, url, source_name):
-        """Fetch zwfw.hrss.yn.gov.cn notifications using Playwright or fallback"""
-        # 先尝试普通方式抓取，失败后再用Playwright
+        """Fetch zwfw.hrss.yn.gov.cn notifications using Playwright"""
+        results = []
         try:
             from playwright.sync_api import sync_playwright
             
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=['--no-sandbox', '--disable-setuid-sandbox']
+                )
                 context = browser.new_context(
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                 )
                 page = context.new_page()
                 
                 page.goto(url, timeout=30000)
-                page.wait_for_load_state("networkidle")
-                page.wait_for_timeout(3000)
+                page.wait_for_load_state("networkidle", timeout=15000)
+                page.wait_for_timeout(2000)
                 
                 notifications = page.evaluate(f"""
                     () => {{
@@ -153,7 +156,7 @@ class HRSSSpider:
                                     }}
                                     
                                     let url = 'https://zwfw.hrss.yn.gov.cn/zjgl/qt/index/tz?id=sy_zcgz';
-                                    let id = title.substring(0, 50).replace(/[^\\u4e00-\\u9fa5a-zA-Z0-9]/g, '');
+                                    let id = title.substring(0, 45).replace(/[^\\u4e00-\\u9fa5a-zA-Z0-9]/g, '');
                                     
                                     if (title && title.length > 5 && !results.find(r => r.title === title)) {{
                                         results.push({{
@@ -175,11 +178,12 @@ class HRSSSpider:
                 browser.close()
                 results = notifications
                 
-        except ImportError:
-            print(f"  [WARN] Playwright不可用，跳过人才服务平台抓取")
+        except ImportError as e:
+            print(f"  [ERROR] Playwright 未安装: {e}")
+            print(f"  [ERROR] 请运行: pip install playwright && playwright install chromium")
             return []
         except Exception as e:
-            print(f"  [ERROR] Playwright错误: {e}")
+            print(f"  [ERROR] Playwright 抓取失败: {e}")
             return []
         
         return results
