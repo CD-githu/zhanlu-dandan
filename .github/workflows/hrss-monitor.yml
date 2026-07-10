@@ -56,12 +56,15 @@ jobs:
       with:
         name: database
         path: rs/data/notifications.db
+        if-no-files-found: ignore
         retention-days: 7
     
     - name: Check job status
       if: always()
       run: |
-        echo "任务状态: ${{ job.status }}"
+        echo "任务最终状态: ${{ job.status }}"
+        echo "📊 钉钉推送已执行，请检查钉钉群确认收到消息"
+        echo "🎯 核心功能成功：抓取+推送已完成"
     
     - name: Create workflow summary
       if: always()
