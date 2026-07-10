@@ -33,7 +33,7 @@
     ],
     "push": {
         "type": "dingtalk",
-        "dingtalk_token": "",
+        "dingtalk_token": "e83a5a27c0889c752d8684ed9f677f63a40b920988e23d930650d739bde5519a",
         "wechat_key": "",
         "email": {
             "smtp": "",
