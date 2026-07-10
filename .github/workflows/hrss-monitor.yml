@@ -52,7 +52,7 @@ jobs:
     
     - name: Upload database as artifact
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: database
         path: rs/data/notifications.db
