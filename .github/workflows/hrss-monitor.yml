@@ -1,14 +1,11 @@
 name: HRSS Notification Monitor
 
 on:
-  # 每天北京上午10:00执行（UTC时间2:00，考虑时差）
   schedule:
-    - cron: '0 2 * * *'
-  # 允许手动触发（用于测试）
-  workflow_dispatch:  
-  # 代码推送时自动触发（可选，用于测试）
+    - cron: '0 2 * * *'  # 北京时间 10:00执行
+  workflow_dispatch:  # 允许手动触发
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   monitor:
@@ -35,17 +32,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4 schedule playwright
-        # 安装playwright浏览器（减缓存提高速度）
         playwright install chromium
     
     - name: Create data directory
       run: |
-        mkdir -p data
+        mkdir -p rs/data
     
     - name: Run monitor
       env:
         PYTHONUNBUFFERED: "1"
         TZ: "Asia/Shanghai"
+      working-directory: ./rs
       run: |
         echo "开始监控任务"
         echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
@@ -57,21 +54,13 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: database
-        path: data/notifications.db
+        path: rs/data/notifications.db
         retention-days: 7
     
     - name: Check job status
       if: always()
       run: |
         echo "任务状态: ${{ job.status }}"
-    
-    - name: Notify on failure
-      if: failure()
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const url = context.payload.repository.html_url;
-          core.setFailed(`监控任务失败，请查看日志: ${url}/actions`);
     
     - name: Create workflow summary
       if: always()
