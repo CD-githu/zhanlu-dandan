@@ -54,8 +54,10 @@ def run_once(config):
 
     if new_notifications:
         Notifier(config).send(new_notifications)
+        print(f"[推送] 已推送 {len(new_notifications)} 条新通知到钉钉")
     else:
-        print("[INFO] 无新通知")
+        print("[INFO] 无新通知 - 所有抓取到的通知已在历史记录中")
+        print("[推送] 此次无新消息推送")
 
     print(f"\n[完成] 本次抓取结束")
     return len(new_notifications)

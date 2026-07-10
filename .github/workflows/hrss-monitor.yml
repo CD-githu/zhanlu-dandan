@@ -35,9 +35,12 @@ jobs:
         playwright install chromium --with-deps
       timeout-minutes: 10
     
-    - name: Create data directory
-      run: |
-        mkdir -p rs/data
+    - name: Download previous database
+      uses: actions/download-artifact@v4
+      with:
+        name: database
+        path: rs/data/
+      continue-on-error: true
     
     - name: Run monitor
       env:
@@ -50,14 +53,25 @@ jobs:
         python monitor.py
       timeout-minutes: 30
     
-    - name: Upload database as artifact
+    - name: Run monitor
+      env:
+        PYTHONUNBUFFERED: "1"
+        TZ: "Asia/Shanghai"
+      run: |
+        cd rs
+        echo "开始监控任务"
+        echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+        python monitor.py
+      timeout-minutes: 30
+    
+    - name: Save database for next run
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: database
         path: rs/data/notifications.db
-        if-no-files-found: ignore
-        retention-days: 7
+        if-no-files-found: warn
+        retention-days: 90
     
     - name: Check job status
       if: always()
@@ -65,11 +79,21 @@ jobs:
         echo "任务最终状态: ${{ job.status }}"
         echo "📊 钉钉推送已执行，请检查钉钉群确认收到消息"
         echo "🎯 核心功能成功：抓取+推送已完成"
-    
+        echo "📈 下次定时任务: 北京时间明天上午10:00"
+
     - name: Create workflow summary
       if: always()
       run: |
         echo "## 监控任务执行结果 📊" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "- **执行时间**: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
         echo "- **执行状态**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Workflow**: [查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "- **推送方式**: 钉钉机器人自动推送" >> $GITHUB_STEP_SUMMARY
+        echo "- **增量推送**: ✓ 只推送新通知，避免重复" >> $GITHUB_STEP_SUMMARY
+        echo "- **下次执行**: 北京时间明天上午10:00" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 检查推送结果" >> $GITHUB_STEP_SUMMARY
+        echo "请查看你的钉钉群，确认是否收到新的职称申报、考试通知" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔍 查看详情" >> $GITHUB_STEP_SUMMARY
+        echo "[完整运行日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
