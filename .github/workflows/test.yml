@@ -1,0 +1,16 @@
+name: Simple Test Workflow
+
+on:
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Test GitHub Actions
+        run: |
+          echo "GitHub Actions 测试成功！"
+          echo "当前时间: $(date)"
+          echo "Python 版本:"
+          python3 --version
