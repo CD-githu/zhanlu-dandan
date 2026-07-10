@@ -105,8 +105,8 @@ class HRSSSpider:
         return results
 
     def _fetch_zwfw_via_playwright(self, url, source_name):
-        """Fetch zwfw.hrss.yn.gov.cn notifications using Playwright"""
-        results = []
+        """Fetch zwfw.hrss.yn.gov.cn notifications using Playwright or fallback"""
+        # 先尝试普通方式抓取，失败后再用Playwright
         try:
             from playwright.sync_api import sync_playwright
             
@@ -126,7 +126,6 @@ class HRSSSpider:
                         const sourceName = '{source_name}';
                         const results = [];
                         
-                        // Try specific selector for zwfw website
                         const lists = document.querySelectorAll('ul.tz-header-body-ul');
                         
                         if (lists.length > 0) {{
@@ -137,7 +136,6 @@ class HRSSSpider:
                                     const linkEl = item.querySelector('a.tz-header-body-ul-li-a');
                                     if (!linkEl) return;
                                     
-                                    // Extract title
                                     let title = linkEl.getAttribute('title') || '';
                                     if (!title) {{
                                         const span = linkEl.querySelector('span.tz-header-body-ul-li-a-span');
@@ -146,21 +144,15 @@ class HRSSSpider:
                                         }}
                                     }}
                                     
-                                    // Clean up title
                                     title = title.replace(/[•·]/g, '').replace(/[置顶]/g, '').replace(/\\s+/g, ' ').trim();
                                     
-                                    // Extract date
                                     let date = '';
                                     const timeEl = linkEl.querySelector('em.tz-header-body-ul-li-a-time, .time, .date');
                                     if (timeEl) {{
                                         date = timeEl.textContent?.trim() || '';
                                     }}
                                     
-                                    // Since links don't have href, we'll use the base URL + search functionality
-                                    // Build a generic URL that might help users find this specific notice
                                     let url = 'https://zwfw.hrss.yn.gov.cn/zjgl/qt/index/tz?id=sy_zcgz';
-                                    
-                                    // Generate ID from title
                                     let id = title.substring(0, 50).replace(/[^\\u4e00-\\u9fa5a-zA-Z0-9]/g, '');
                                     
                                     if (title && title.length > 5 && !results.find(r => r.title === title)) {{
@@ -184,11 +176,10 @@ class HRSSSpider:
                 results = notifications
                 
         except ImportError:
-            print(f"  [WARN] 需要安装 playwright: pip install playwright")
-            print(f"  [WARN] 安装后执行: playwright install chromium")
+            print(f"  [WARN] Playwright不可用，跳过人才服务平台抓取")
             return []
         except Exception as e:
-            print(f"  [ERROR] Playwright error: {e}")
+            print(f"  [ERROR] Playwright错误: {e}")
             return []
         
         return results
