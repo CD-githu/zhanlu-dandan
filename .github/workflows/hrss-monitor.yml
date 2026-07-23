@@ -1,0 +1,74 @@
+name: HRSS Notification Monitor
+
+on:
+  schedule:
+    # 每天北京时间 10:00 执行（UTC 时间 02:00）
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
+  push:
+    branches: [ main ]
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('rs/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright
+
+      # 恢复上次运行的数据库，实现增量推送（已推送过的通知不再重复推送）
+      # key 带 run_id 保证每次保存新缓存；restore-keys 前缀匹配取最近一次的数据库
+      - name: Restore notifications database
+        uses: actions/cache@v4
+        with:
+          path: rs/data
+          key: hrss-notifications-db-${{ github.run_id }}
+          restore-keys: |
+            hrss-notifications-db-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 schedule playwright
+          playwright install chromium --with-deps
+        timeout-minutes: 10
+
+      # 单次运行模式：执行一次抓取+推送后程序退出，避免无限循环导致超时
+      - name: Run monitor (single-run mode)
+        env:
+          PYTHONUNBUFFERED: "1"
+          TZ: "Asia/Shanghai"
+        run: |
+          cd rs
+          echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          python monitor.py --once
+        timeout-minutes: 20
+
+      - name: Workflow summary
+        if: always()
+        run: |
+          echo "## 监控任务执行结果" >> $GITHUB_STEP_SUMMARY
+          echo "- **执行时间**: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+          echo "- **执行状态**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **推送方式**: 钉钉机器人自动推送" >> $GITHUB_STEP_SUMMARY
+          echo "- **增量推送**: 只推送新通知，已推送过的不再重复" >> $GITHUB_STEP_SUMMARY
