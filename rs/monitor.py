@@ -17,6 +17,7 @@ def load_config(config_path="config.json"):
 
 
 def run_once(config):
+    """执行一次抓取+推送任务，返回新通知数量"""
     print(f"\n{'='*60}")
     print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 开始抓取")
     print(f"{'='*60}")
@@ -70,13 +71,21 @@ def main():
     print("云南省人社厅通知监控工具")
     print("="*60)
 
+    # 单次运行模式：python monitor.py --once
+    # 适用于 Windows 任务计划程序，执行一次后退出
+    if "--once" in sys.argv:
+        print("[INFO] 单次运行模式（Windows任务计划程序）")
+        run_once(config)
+        print("[INFO] 单次运行完成，程序退出")
+        return
+
     if not config.get("schedule", {}).get("enabled", True):
         print("[INFO] 定时任务已禁用，执行单次抓取")
         run_once(config)
         return
 
     schedule_time = config.get("schedule", {})
-    hour = schedule_time.get("hour", 8)
+    hour = schedule_time.get("hour", 10)
     minute = schedule_time.get("minute", 0)
 
     print(f"[INFO] 定时任务已启用，每天 {hour:02d}:{minute:02d} 执行")
@@ -96,4 +105,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # 增量推送更新：2026-07-13 - 确保只推送新通知，无新通知时明确提示
